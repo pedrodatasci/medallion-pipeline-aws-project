@@ -2,7 +2,7 @@
 
 set -e
 
-# Entra na pasta do Terraform
+# 🧭 Entra na pasta do Terraform
 cd "$(dirname "$0")/terraform"
 
 # 🔧 Obtém os valores de output do Terraform
@@ -17,10 +17,10 @@ fi
 
 echo "📦 S3_BUCKET: $S3_BUCKET"
 
-# Volta para a raiz do projeto
+# 🔙 Volta para a raiz do projeto
 cd ..
 
-# Ambiente virtual
+# 🐍 Ambiente virtual
 echo "🐍 Criando ambiente virtual..."
 if [ ! -d ".venv" ]; then
   python -m venv .venv
@@ -32,20 +32,20 @@ else
   source .venv/bin/activate
 fi
 
-# Instala dependências Python
+# 📦 Instala dependências Python
 echo "📦 Instalando dependências..."
 pip install -r requirements.txt
 
-# Coleta os dados da API
+# 🌦️ Coleta os dados da API
 echo "🌦️ Coletando dados da API..."
-python ingestion/api_collector.py
+S3_BUCKET="$S3_BUCKET" python ingestion/api_collector.py
 
-# Envia scripts Glue para o S3
+# ⬆️ Envia scripts Glue para o S3
 echo "⬆️ Enviando scripts para o S3..."
 aws s3 cp etl/bronze_glue.py s3://$S3_BUCKET/scripts/bronze_glue.py
 aws s3 cp etl/silver_glue.py s3://$S3_BUCKET/scripts/silver_glue.py
 
-# Executa o job Bronze
+# 🔥 Executa o job Bronze
 echo "🔥 Executando job Bronze ($BRONZE_JOB)..."
 BRONZE_RUN_ID=$(aws glue start-job-run \
   --job-name "$BRONZE_JOB" \
@@ -71,7 +71,7 @@ if [[ "$STATUS" != "SUCCEEDED" ]]; then
 fi
 echo "✅ Bronze finalizado com sucesso!"
 
-# Executa o job Silver
+# ✨ Executa o job Silver
 echo "✨ Executando job Silver ($SILVER_JOB)..."
 SILVER_RUN_ID=$(aws glue start-job-run \
   --job-name "$SILVER_JOB" \
@@ -105,14 +105,12 @@ echo "🚀 Pipeline Glue executada com sucesso!"
 
 echo "🔗 Carregando dados no Redshift..."
 
-# Recupera valores via Terraform
 REDSHIFT_WORKGROUP=$(terraform -chdir=terraform output -raw redshift_workgroup_name)
 REDSHIFT_DATABASE=$(terraform -chdir=terraform output -raw redshift_database_name)
 REDSHIFT_COPY_ROLE_ARN=$(terraform -chdir=terraform output -raw redshift_copy_role_arn)
 TABLE_NAME="public.breweries_silver"
 SILVER_PATH="s3://$S3_BUCKET/silver/"
 
-# Criação da tabela (caso não exista)
 echo "🛠️ Criando tabela no Redshift (se necessário)..."
 aws redshift-data execute-statement \
   --workgroup-name "$REDSHIFT_WORKGROUP" \
@@ -130,7 +128,6 @@ aws redshift-data execute-statement \
     data_ingestao TIMESTAMP
   );"
 
-# Carga dos dados da camada Silver
 echo "📥 Executando COPY da camada Silver para Redshift..."
 aws redshift-data execute-statement \
   --workgroup-name "$REDSHIFT_WORKGROUP" \
@@ -139,3 +136,44 @@ aws redshift-data execute-statement \
          FROM '$SILVER_PATH'
          IAM_ROLE '$REDSHIFT_COPY_ROLE_ARN'
          FORMAT AS PARQUET;"
+
+# ========================
+# 👤 Criação de usuário de leitura no Redshift
+# ========================
+
+echo "👤 Criando usuário de leitura no Redshift..."
+
+SECRET_JSON=$(aws secretsmanager get-secret-value \
+  --secret-id redshift-brewery-readonly-user-v1 \
+  --query SecretString \
+  --output text)
+
+REDSHIFT_USER=$(echo "$SECRET_JSON" | python -c "import sys, json; print(json.load(sys.stdin)['username'])")
+REDSHIFT_PASS=$(echo "$SECRET_JSON" | python -c "import sys, json; print(json.load(sys.stdin)['password'])")
+
+# Verifica se o usuário já existe
+USER_EXISTS=$(aws redshift-data execute-statement \
+  --workgroup-name "$REDSHIFT_WORKGROUP" \
+  --database "$REDSHIFT_DATABASE" \
+  --sql "SELECT COUNT(*) FROM pg_user WHERE usename = '$REDSHIFT_USER';" \
+  --output text --query "Records[0][0].longValue")
+
+if [[ "$USER_EXISTS" -eq 0 ]]; then
+  echo "🔧 Criando usuário $REDSHIFT_USER no Redshift..."
+  aws redshift-data execute-statement \
+    --workgroup-name "$REDSHIFT_WORKGROUP" \
+    --database "$REDSHIFT_DATABASE" \
+    --sql "CREATE USER $REDSHIFT_USER PASSWORD '$REDSHIFT_PASS';"
+else
+  echo "✅ Usuário $REDSHIFT_USER já existe. Pulando criação."
+fi
+
+# Aplica permissões
+echo "🔐 Garantindo permissões..."
+aws redshift-data execute-statement \
+  --workgroup-name "$REDSHIFT_WORKGROUP" \
+  --database "$REDSHIFT_DATABASE" \
+  --sql "GRANT USAGE ON SCHEMA public TO $REDSHIFT_USER;
+         GRANT SELECT ON public.breweries_silver TO $REDSHIFT_USER;"
+
+echo "✅ Usuário de leitura garantido!"

@@ -38,7 +38,7 @@ medallion-pipeline-aws-project/
 │   ├── glue_jobs.tf
 │   ├── redshift.tf
 │   ├── outputs.tf
-│   
+│   └── secrets.tf
 │
 ├── docs/
 │   └── flow.png
@@ -82,7 +82,8 @@ cd ..
 > - Bucket S3  
 > - Jobs Glue Bronze e Silver  
 > - Workgroup Redshift Serverless  
-> - Role com permissões adequadas
+> - Role com permissões adequadas  
+> - Secrets com usuário/senha para acesso ao Redshift
 
 ### 3. Execute a pipeline completa
 Mas antes: a role IAM utilizada no COPY precisa ser **associada manualmente** ao Redshift Workgroup no console AWS.
@@ -99,6 +100,7 @@ Este script:
 - Executa os jobs Glue de Bronze e Silver
 - Cria a tabela no Redshift (se não existir)
 - Faz o COPY da camada Silver para o Redshift
+- Cria um usuário de leitura no Redshift baseado em secrets
 
 ---
 
@@ -109,7 +111,6 @@ Após a execução completa, os dados estarão disponíveis:
 - Em `s3://<bucket>/bronze/` no formato Parquet
 - Em `s3://<bucket>/silver/` no formato Parquet
 - Na tabela `analytics_db.public.breweries_silver` do Redshift Serverless
-    - Pode-se adicionar um schemma no Terraform caso queira
 
 ---
 
@@ -136,7 +137,7 @@ CREATE TABLE IF NOT EXISTS public.breweries_silver (
 
 - A role IAM utilizada no COPY precisa ser **associada manualmente** ao Redshift Workgroup no console AWS.
 - O bucket S3 é nomeado automaticamente via Terraform (`openbrewery-data-<sufixo>`).
-- Em produção, recomenda-se utilizar o Secrets Manager para a senha do Redshift.
+- Após a execução do pipeline, acesse o Secrets Manager para recuperar o usuário e senha de acesso ao Redshift.
 
 ---
 
