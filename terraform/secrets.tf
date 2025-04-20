@@ -1,6 +1,12 @@
 resource "random_password" "redshift_user_password" {
-  length  = 16
-  special = true
+  length           = 16
+  override_characters = "!@#%^*-_=+"
+  special          = true
+  upper            = true
+  lower            = true
+  number           = true
+  # evita barras, aspas e espaços que quebram o SQL
+  exclude_characters = "/@\" '\\"
 }
 
 resource "random_id" "secret_suffix" {
