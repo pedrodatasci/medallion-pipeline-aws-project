@@ -142,10 +142,12 @@ aws redshift-data execute-statement \
 # 👤 Criação de usuário de leitura no Redshift
 # ========================
 
+# 👤 Criação de usuário de leitura no Redshift
+
 echo "👤 Criando usuário de leitura no Redshift..."
 
 SECRET_JSON=$(aws secretsmanager get-secret-value \
-  --secret-id $SECRET_NAME \
+  --secret-id "$SECRET_NAME" \
   --query SecretString \
   --output text)
 
@@ -166,7 +168,11 @@ if [[ "$USER_EXISTS" -eq 0 ]]; then
     --database "$REDSHIFT_DATABASE" \
     --sql "CREATE USER $REDSHIFT_USER PASSWORD '$REDSHIFT_PASS';"
 else
-  echo "✅ Usuário $REDSHIFT_USER já existe. Pulando criação."
+  echo "🔄 Usuário $REDSHIFT_USER já existe. Atualizando senha..."
+  aws redshift-data execute-statement \
+    --workgroup-name "$REDSHIFT_WORKGROUP" \
+    --database "$REDSHIFT_DATABASE" \
+    --sql "ALTER USER $REDSHIFT_USER PASSWORD '$REDSHIFT_PASS';"
 fi
 
 # Aplica permissões
