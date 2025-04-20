@@ -1,0 +1,19 @@
+# Ambiente Python
+venv
+.venv/
+__pycache__/
+*.pyc
+
+# Arquivos temporários
+*.log
+*.tmp
+*.bak
+
+# Terraform
+terraform.tfstate*
+.terraform/
+.terraform.lock.hcl
+
+# Arquivos do sistema
+.DS_Store
+Thumbs.db
