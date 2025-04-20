@@ -65,7 +65,7 @@ medallion-pipeline-aws-project/
 ### 1. Clone o projeto e entre na pasta
 
 ```bash
-git clone https://github.com/seu-user/medallion-pipeline-aws-project.git
+git clone https://github.com/pedrodatasci/medallion-pipeline-aws-project.git
 cd medallion-pipeline-aws-project
 ```
 
@@ -85,6 +85,8 @@ cd ..
 > - Role com permissões adequadas
 
 ### 3. Execute a pipeline completa
+Mas antes: a role IAM utilizada no COPY precisa ser **associada manualmente** ao Redshift Workgroup no console AWS.
+Caso contrário a etapa da COPY irá falhar.
 
 ```bash
 chmod +x run_pipeline.sh
@@ -107,6 +109,7 @@ Após a execução completa, os dados estarão disponíveis:
 - Em `s3://<bucket>/bronze/` no formato Parquet
 - Em `s3://<bucket>/silver/` no formato Parquet
 - Na tabela `analytics_db.public.breweries_silver` do Redshift Serverless
+    - Pode-se adicionar um schemma no Terraform caso queira
 
 ---
 

@@ -1,7 +1,7 @@
 resource "aws_redshiftserverless_namespace" "this" {
   namespace_name      = "medallion-namespace"
   admin_username      = "admin"
-  admin_user_password = "GlueRed123#Xy"  # Corrigido: senha válida
+  admin_user_password = "GlueRed123#Xy"  # não é a melhor prática ser hardcoded, mas para teste de infra é conveniente
   db_name             = "analytics_db"
 }
 
