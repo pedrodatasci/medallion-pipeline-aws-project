@@ -13,6 +13,7 @@ __pycache__/
 terraform.tfstate*
 .terraform/
 .terraform.lock.hcl
+.terraform.tfstate.lock.info
 
 # Arquivos do sistema
 .DS_Store
