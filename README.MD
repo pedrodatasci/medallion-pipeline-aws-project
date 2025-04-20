@@ -139,7 +139,7 @@ CREATE TABLE IF NOT EXISTS public.breweries_silver (
 
 ## 📈 Diagrama da Pipeline
 
-![Arquitetura](./docs/flowchart.png)
+![Arquitetura](./docs/flow.png)
 
 ---
 
