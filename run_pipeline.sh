@@ -9,6 +9,7 @@ cd "$(dirname "$0")/terraform"
 S3_BUCKET=$(terraform output -raw bucket_name)
 BRONZE_JOB=$(terraform output -raw bronze_job_name)
 SILVER_JOB=$(terraform output -raw silver_job_name)
+SECRET_NAME=$(terraform output -raw redshift_read_user_secret_name)
 
 if [[ -z "$S3_BUCKET" || "$S3_BUCKET" == *"Warning:"* ]]; then
   echo "❌ Falha ao obter nome do S3_BUCKET"
@@ -144,7 +145,7 @@ aws redshift-data execute-statement \
 echo "👤 Criando usuário de leitura no Redshift..."
 
 SECRET_JSON=$(aws secretsmanager get-secret-value \
-  --secret-id redshift-brewery-readonly-user-v1 \
+  --secret-id $SECRET_NAME \
   --query SecretString \
   --output text)
 
